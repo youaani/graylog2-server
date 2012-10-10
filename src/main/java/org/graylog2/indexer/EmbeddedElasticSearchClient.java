@@ -15,6 +15,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.WriteConsistencyLevel;
+import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
@@ -139,6 +140,20 @@ public class EmbeddedElasticSearchClient {
             return "UNKNOWN";
         }
         
+    }
+    
+    public Map<String, NodeInfo> getNodes() {
+        return client.admin().cluster().nodesInfo(new NodesInfoRequest().all()).actionGet().getNodesMap();   
+    }
+    
+    public Map<String, String> getNodeVersions() {
+        Map<String, String> r = Maps.newHashMap();
+        
+        for (Map.Entry<String, NodeInfo> n : getNodes().entrySet()) {
+            r.put(n.getKey(), n.getValue().jvm().getVersion());
+        }
+        
+        return r;
     }
     
     public int getNumberOfNodesInCluster() {

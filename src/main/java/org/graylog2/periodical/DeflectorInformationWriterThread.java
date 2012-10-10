@@ -52,6 +52,9 @@ public class DeflectorInformationWriterThread implements Runnable {
         }
         i.setDeflectorTarget(deflectorName);
         
+        // Node version information.
+        i.setNodeVersions(graylogServer.getIndexer().getNodeVersions());
+        
         // Configured limit of messages per index.
         i.setConfiguredMaximumMessagesPerIndex(
                 graylogServer.getConfiguration().getElasticSearchMaxDocsPerIndex()

@@ -34,11 +34,20 @@ cp -R ../target/graylog2-server-jar-with-dependencies.jar ../README.markdown ../
 # Rename jar
 mv $BUILD_DIR/graylog2-server-jar-with-dependencies.jar $BUILD_DIR/graylog2-server.jar
 
-# Copy example config file
+# Copy example config files
 cp ../misc/graylog2.conf $BUILD_DIR/graylog2.conf.example
+cp ../misc/elasticsearch.yml $BUILD_DIR/elasticsearch.yml.example
 
 # Copy control script
 cp -R copy/bin $BUILD_DIR
+
+# Create empty plugin directories.
+mkdir -p $BUILD_DIR/plugin
+mkdir -p $BUILD_DIR/plugin/filters
+mkdir -p $BUILD_DIR/plugin/outputs
+mkdir -p $BUILD_DIR/plugin/inputs
+mkdir -p $BUILD_DIR/plugin/initializers
+mkdir -p $BUILD_DIR/plugin/transports
 
 cd builds/
 

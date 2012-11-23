@@ -20,35 +20,43 @@
 
 package org.graylog2.buffers;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.lmax.disruptor.MultiThreadedClaimStrategy;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.SleepingWaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import org.apache.commons.lang3.concurrent.BasicThreadFactory;
-import org.apache.log4j.Logger;
+import com.yammer.metrics.Metrics;
+import com.yammer.metrics.core.Meter;
 import org.graylog2.Core;
 import org.graylog2.buffers.processors.ProcessBufferProcessor;
 import org.graylog2.plugin.buffers.Buffer;
 import org.graylog2.plugin.logmessage.LogMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Lennart Koopmann <lennart@socketfeed.com>
  */
 public class ProcessBuffer implements Buffer {
 
-    private static final Logger LOG = Logger.getLogger(ProcessBuffer.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ProcessBuffer.class);
     
     protected static RingBuffer<LogMessageEvent> ringBuffer;
 
     protected ExecutorService executor = Executors.newCachedThreadPool(
-            new BasicThreadFactory.Builder()
-                .namingPattern("processbufferprocessor-%d")
+            new ThreadFactoryBuilder()
+                .setNameFormat("processbufferprocessor-%d")
                 .build()
     );
 
     Core server;
+    
+    private final Meter incomingMessages = Metrics.newMeter(ProcessBuffer.class, "InsertedMessages", "messages", TimeUnit.SECONDS);
+    private final Meter rejectedMessages = Metrics.newMeter(ProcessBuffer.class, "RejectedMessages", "messages", TimeUnit.SECONDS);
 
     public ProcessBuffer(Core server) {
         this.server = server;
@@ -82,8 +90,10 @@ public class ProcessBuffer implements Buffer {
             ringBuffer.publish(sequence);
 
             server.processBufferWatermark().incrementAndGet();
+            incomingMessages.mark();
         } else {
-            LOG.fatal("ProcessBuffer is out of capacity. Raise the ring_size configuration parameter. DROPPING MESSAGE!");
+            LOG.error("ProcessBuffer is out of capacity. Raise the ring_size configuration parameter. DROPPING MESSAGE!");
+            rejectedMessages.mark();
         }
     }
 

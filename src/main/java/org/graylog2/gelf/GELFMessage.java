@@ -20,8 +20,10 @@
 
 package org.graylog2.gelf;
 
-import java.io.IOException;
 import org.graylog2.Tools;
+
+import java.io.IOException;
+import java.nio.charset.Charset;
 
 /**
  * @author Lennart Koopmann <lennart@socketfeed.com>
@@ -31,6 +33,8 @@ public class GELFMessage {
     private final byte[] payload;
 
     public static final String ADDITIONAL_FIELD_PREFIX = "_";
+
+    private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
 
     public enum Type {
 
@@ -52,25 +56,24 @@ public class GELFMessage {
         CHUNKED( (byte) 0x1e, (byte) 0x0f ),
 
         /**
-         * An uncompressed message
+         * An uncompressed message, the byte values are not used.
          */
-        UNCOMPRESSED( (byte) 0x1f, (byte) 0x3c );
+        UNCOMPRESSED( (byte) 0xff, (byte) 0xff);
 
         private static final int HEADER_SIZE = 2;
 
-        private final byte first;
-        private final byte second;
+        private final byte[] bytes;
 
         Type(final byte first, final byte second) {
-            this.first = first;
-            this.second = second;
-        };
+            bytes = new byte[]{first, second};
+        }
 
         static Type determineType(final byte first, final byte second) {
-            if (first == ZLIB.first) {
+
+            if (first == ZLIB.first()) {
                 // zlib's second byte is for flags and a checksum -
                 // make sure it is positive.
-                int secondInt = second;
+                int secondInt = ZLIB.second();
                 if (second < 0) {
                     secondInt += 256;
                 }
@@ -82,23 +85,39 @@ public class GELFMessage {
                 // multiple of 31"
                 if ((256 * first + secondInt) % 31 == 0) {
                     return ZLIB;
+                } else {
+                    return UNSUPPORTED;
                 }
-            } else if (first == GZIP.first) { // GZIP and UNCOMPRESSED share first magic byte
-                if (second == GZIP.second) {
+            } else if (first == GZIP.first()) {
+                if (second == GZIP.second()) {
                     return GZIP;
-                } else if (second == UNCOMPRESSED.second) {
-                    return UNCOMPRESSED;
+                } else {
+                    return UNSUPPORTED;
                 }
-            } else if (first == CHUNKED.first && second == CHUNKED.second) {
-                return CHUNKED;
+            } else if (first == CHUNKED.first()) {
+                if (second == CHUNKED.second()) {
+                    return CHUNKED;
+                } else {
+                    return UNSUPPORTED;
+                }
             }
-            return UNSUPPORTED;
+            // by default assume the payload to be "raw, uncompressed" GELF, parsing will fail if it's malformed.
+            return UNCOMPRESSED;
+        }
+
+        public byte first() {
+            return bytes[0];
+        }
+
+        public byte second() {
+            return bytes[1];
         }
     }
 
     /**
      *
-     * @param payload Compressed or uncompressed (See HEADER_* constants)
+     * @param payload Compressed or uncompressed
+     * @see GELFMessage.Type
      */
     public GELFMessage(final byte[] payload) {
         this.payload = payload;
@@ -119,10 +138,7 @@ public class GELFMessage {
                 case GZIP:
                     return Tools.decompressGzip(payload);
                 case UNCOMPRESSED:
-                    // Slice off header and return pure uncompressed bytes.
-                    final byte[] result = new byte[payload.length-2];
-                    System.arraycopy(payload, 2, result, 0, payload.length-2);
-                    return new String(result, "UTF-8");
+                    return new String(payload, UTF8_CHARSET);
                 case CHUNKED:
                 case UNSUPPORTED:
                     throw new IllegalStateException("Unknown GELF type. Not supported.");

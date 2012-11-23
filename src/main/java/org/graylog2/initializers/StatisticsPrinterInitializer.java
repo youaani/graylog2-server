@@ -17,37 +17,31 @@
  * along with Graylog2.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+package org.graylog2.initializers;
 
-package org.graylog2.periodical;
-
-import org.graylog2.indexer.NoTargetIndexException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.graylog2.Core;
+import org.graylog2.periodical.StatisticsPrinterThread;
 
 /**
  * @author Lennart Koopmann <lennart@socketfeed.com>
  */
-public class IndexRetentionThread implements Runnable {
-
-    private static final Logger LOG = LoggerFactory.getLogger(IndexRetentionThread.class);
-
-    private final Core server;
+public class StatisticsPrinterInitializer extends SimpleFixedRateScheduleInitializer implements Initializer {
     
-    public static final int INITIAL_DELAY = 0;
-    public static final int PERIOD = 300; // Run every five minutes.
-
-    public IndexRetentionThread(Core server) {
-        this.server = server;
+    public StatisticsPrinterInitializer(Core graylogServer) {
+        this.graylogServer = graylogServer;
     }
 
     @Override
-    public void run() {
-        try {
-            server.getIndexer().runIndexRetention();
-        } catch (NoTargetIndexException e) {
-            LOG.error("Couldn't run index retention", e);
-        }
+    public void initialize() {
+        configureScheduler(
+                new StatisticsPrinterThread(this.graylogServer),
+                StatisticsPrinterThread.INITIAL_DELAY,
+                StatisticsPrinterThread.PERIOD
+        );
     }
-
+    
+    @Override
+    public boolean masterOnly() {
+        return false;
+    }
 }

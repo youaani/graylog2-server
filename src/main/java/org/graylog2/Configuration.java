@@ -20,11 +20,6 @@
 
 package org.graylog2;
 
-import java.util.Arrays;
-import java.util.List;
-
-import org.apache.log4j.Logger;
-
 import com.github.joschi.jadconfig.Parameter;
 import com.github.joschi.jadconfig.ValidationException;
 import com.github.joschi.jadconfig.ValidatorMethod;
@@ -35,9 +30,14 @@ import com.github.joschi.jadconfig.validators.PositiveIntegerValidator;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.mongodb.ServerAddress;
-import java.net.UnknownHostException;
-import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.graylog2.indexer.EmbeddedElasticSearchClient;
+
+import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Helper class to hold configuration of Graylog2
@@ -47,7 +47,7 @@ import org.graylog2.indexer.EmbeddedElasticSearchClient;
  */
 public class Configuration {
 
-    private static final Logger LOG = Logger.getLogger(Configuration.class);
+    private static final Logger LOG = LoggerFactory.getLogger(Configuration.class);
 
     @Parameter(value = "is_master", required = true)
     private boolean isMaster = true;
@@ -99,6 +99,12 @@ public class Configuration {
     
     @Parameter(value = "outputbuffer_processors", required = true, validator = PositiveIntegerValidator.class)
     private int outputBufferProcessors = 5;
+    
+    @Parameter(value = "outputbuffer_processor_threads_max_pool_size", required = true, validator = PositiveIntegerValidator.class)
+    private int outputBufferProcessorThreadsMaxPoolSize = 30;
+    
+    @Parameter(value = "outputbuffer_processor_threads_core_pool_size", required = true, validator = PositiveIntegerValidator.class)
+    private int outputBufferProcessorThreadsCorePoolSize = 3;
     
     @Parameter(value = "ring_size", required = true, validator = PositiveIntegerValidator.class)
     private int ringSize = 1024;
@@ -269,7 +275,16 @@ public class Configuration {
     
     @Parameter(value = "transport_jabber_message_prefix", required = false)
     private String jabberTransportMessagePrefix;
-    
+
+    @Parameter("http_enabled")
+    private boolean httpEnabled = false;
+
+    @Parameter("http_listen_address")
+    private String httpListenAddress = "0.0.0.0";
+
+    @Parameter(value = "http_listen_port", validator = InetPortValidator.class, required = false)
+    private int httpListenPort = 12202;
+
     public boolean isMaster() {
         return isMaster;
     }
@@ -324,7 +339,7 @@ public class Configuration {
     
     public String getRecentIndexStoreType() {
         if (!EmbeddedElasticSearchClient.ALLOWED_RECENT_INDEX_STORE_TYPES.contains(recentIndexStoreType)) {
-            LOG.error("Invalid recent index store type configured. Falling back to <" + EmbeddedElasticSearchClient.STANDARD_RECENT_INDEX_STORE_TYPE + ">");
+            LOG.error("Invalid recent index store type configured. Falling back to <{}>", EmbeddedElasticSearchClient.STANDARD_RECENT_INDEX_STORE_TYPE);
             return EmbeddedElasticSearchClient.STANDARD_RECENT_INDEX_STORE_TYPE;
         }
         return recentIndexStoreType;
@@ -348,6 +363,14 @@ public class Configuration {
     
     public int getOutputBufferProcessors() {
         return outputBufferProcessors;
+    }
+    
+    public int getOutputBufferProcessorThreadsCorePoolSize() {
+        return outputBufferProcessorThreadsCorePoolSize;
+    }
+    
+    public int getOutputBufferProcessorThreadsMaxPoolSize() {
+        return outputBufferProcessorThreadsMaxPoolSize;
     }
 
     public int getRingSize() {
@@ -583,4 +606,15 @@ public class Configuration {
         }
     }
 
+    public boolean isHttpEnabled() {
+        return httpEnabled;
+    }
+
+    public String getHttpListenAddress() {
+        return httpListenAddress;
+    }
+
+    public int getHttpListenPort() {
+        return httpListenPort;
+    }
 }

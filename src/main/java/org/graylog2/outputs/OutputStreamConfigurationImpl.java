@@ -17,37 +17,29 @@
  * along with Graylog2.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+package org.graylog2.outputs;
 
-package org.graylog2.periodical;
-
-import org.graylog2.indexer.NoTargetIndexException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.graylog2.Core;
+import com.google.common.collect.Maps;
+import java.util.Map;
+import java.util.Set;
+import org.bson.types.ObjectId;
+import org.graylog2.plugin.outputs.OutputStreamConfiguration;
 
 /**
  * @author Lennart Koopmann <lennart@socketfeed.com>
  */
-public class IndexRetentionThread implements Runnable {
+public class OutputStreamConfigurationImpl implements OutputStreamConfiguration {
 
-    private static final Logger LOG = LoggerFactory.getLogger(IndexRetentionThread.class);
-
-    private final Core server;
+    Map<ObjectId, Set<Map<String, String>>> config = Maps.newHashMap();
     
-    public static final int INITIAL_DELAY = 0;
-    public static final int PERIOD = 300; // Run every five minutes.
-
-    public IndexRetentionThread(Core server) {
-        this.server = server;
+    @Override
+    public void add(ObjectId streamId, Set<Map<String, String>> configuration) {
+        config.put(streamId, configuration);
     }
 
     @Override
-    public void run() {
-        try {
-            server.getIndexer().runIndexRetention();
-        } catch (NoTargetIndexException e) {
-            LOG.error("Couldn't run index retention", e);
-        }
+    public Set<Map<String, String>> get(ObjectId streamId) {
+        return config.get(streamId);
     }
-
+    
 }

@@ -18,36 +18,26 @@
  *
  */
 
-package org.graylog2.periodical;
+package org.graylog2.outputs;
 
-import org.graylog2.indexer.NoTargetIndexException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.graylog2.Core;
+import org.graylog2.plugin.logmessage.LogMessage;
+import org.graylog2.plugin.streams.Stream;
+import org.graylog2.streams.StreamImpl;
 
 /**
  * @author Lennart Koopmann <lennart@socketfeed.com>
  */
-public class IndexRetentionThread implements Runnable {
-
-    private static final Logger LOG = LoggerFactory.getLogger(IndexRetentionThread.class);
-
-    private final Core server;
+public class OutputRouter {
     
-    public static final int INITIAL_DELAY = 0;
-    public static final int PERIOD = 300; // Run every five minutes.
-
-    public IndexRetentionThread(Core server) {
-        this.server = server;
-    }
-
-    @Override
-    public void run() {
-        try {
-            server.getIndexer().runIndexRetention();
-        } catch (NoTargetIndexException e) {
-            LOG.error("Couldn't run index retention", e);
+    public static boolean checkRouting(String outputTypeClass, LogMessage msg) {
+        for (Stream stream : msg.getStreams()) {
+            if (((StreamImpl) stream).hasConfiguredOutputs(outputTypeClass)) {
+                return true;
+            }
         }
+        
+        // No stream had that output configured.
+        return false;
     }
-
+    
 }

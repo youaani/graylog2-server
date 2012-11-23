@@ -20,11 +20,7 @@
 
 package org.graylog2.inputs.syslog;
 
-import java.net.InetSocketAddress;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import org.apache.commons.lang3.concurrent.BasicThreadFactory;
-import org.apache.log4j.Logger;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.graylog2.Configuration;
 import org.graylog2.Core;
 import org.graylog2.inputs.MessageInput;
@@ -32,13 +28,19 @@ import org.jboss.netty.bootstrap.ConnectionlessBootstrap;
 import org.jboss.netty.channel.ChannelException;
 import org.jboss.netty.channel.FixedReceiveBufferSizePredictorFactory;
 import org.jboss.netty.channel.socket.nio.NioDatagramChannelFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.InetSocketAddress;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * @author Lennart Koopmann <lennart@socketfeed.com>
  */
 public class SyslogUDPInput implements MessageInput {
 
-    private static final Logger LOG = Logger.getLogger(SyslogUDPInput.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SyslogUDPInput.class);
 
     private static final String NAME = "Syslog UDP";
 
@@ -58,8 +60,8 @@ public class SyslogUDPInput implements MessageInput {
 
     private void spinUp() {       
         final ExecutorService workerThreadPool = Executors.newCachedThreadPool(
-                new BasicThreadFactory.Builder()
-                .namingPattern("input-syslogudp-worker-%d")
+                new ThreadFactoryBuilder()
+                .setNameFormat("input-syslogudp-worker-%d")
                 .build());
         
         final ConnectionlessBootstrap bootstrap = new ConnectionlessBootstrap(new NioDatagramChannelFactory(workerThreadPool));
@@ -70,9 +72,9 @@ public class SyslogUDPInput implements MessageInput {
 
         try {
             bootstrap.bind(socketAddress);
-            LOG.info("Started UDP Syslog server on " + socketAddress);
+            LOG.info("Started UDP Syslog server on {}", socketAddress);
         } catch (ChannelException e) {
-            LOG.fatal("Could not bind Syslog UDP server to address " + socketAddress, e);
+            LOG.error("Could not bind Syslog UDP server to address " + socketAddress, e);
         }
     }
 

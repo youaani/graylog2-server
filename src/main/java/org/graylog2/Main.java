@@ -25,29 +25,26 @@ import com.github.joschi.jadconfig.JadConfig;
 import com.github.joschi.jadconfig.RepositoryException;
 import com.github.joschi.jadconfig.ValidationException;
 import com.github.joschi.jadconfig.repositories.PropertiesRepository;
-import com.google.common.collect.Maps;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.Writer;
-import java.util.Map;
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.graylog2.activities.Activity;
 import org.graylog2.alarms.transports.EmailTransport;
 import org.graylog2.alarms.transports.JabberTransport;
-import org.graylog2.filters.BlacklistFilter;
-import org.graylog2.filters.CounterUpdateFilter;
-import org.graylog2.filters.RewriteFilter;
-import org.graylog2.filters.StreamMatcherFilter;
-import org.graylog2.filters.TokenizerFilter;
+import org.graylog2.filters.*;
 import org.graylog2.initializers.*;
 import org.graylog2.inputs.amqp.AMQPInput;
 import org.graylog2.inputs.gelf.GELFTCPInput;
 import org.graylog2.inputs.gelf.GELFUDPInput;
+import org.graylog2.inputs.http.GELFHttpInput;
 import org.graylog2.inputs.syslog.SyslogTCPInput;
 import org.graylog2.inputs.syslog.SyslogUDPInput;
 import org.graylog2.outputs.ElasticSearchOutput;
+
+import java.io.File;
+import java.io.FileWriter;
+import java.io.Writer;
 
 /**
  * Main class of Graylog2.
@@ -56,7 +53,7 @@ import org.graylog2.outputs.ElasticSearchOutput;
  */
 public final class Main {
 
-    private static final Logger LOG = Logger.getLogger(Main.class);
+    private static final Logger LOG = LoggerFactory.getLogger(Main.class);
 
     /**
      * @param args the command line arguments
@@ -83,14 +80,14 @@ public final class Main {
         // Are we in debug mode?
         if (commandLineArguments.isDebug()) {
             LOG.info("Running in Debug mode");
-            Logger.getRootLogger().setLevel(Level.ALL);
-            Logger.getLogger(Main.class.getPackage().getName()).setLevel(Level.ALL);
+            org.apache.log4j.Logger.getRootLogger().setLevel(Level.ALL);
+            org.apache.log4j.Logger.getLogger(Main.class.getPackage().getName()).setLevel(Level.ALL);
         }
 
-        LOG.info("Graylog2 " + Core.GRAYLOG2_VERSION + " starting up. (JRE: " + Tools.getSystemInformation() + ")");
+        LOG.info("Graylog2 {} starting up. (JRE: {})", Core.GRAYLOG2_VERSION, Tools.getSystemInformation());
 
         String configFile = commandLineArguments.getConfigFile();
-        LOG.info("Using config file: " + configFile);
+        LOG.info("Using config file: {}", configFile);
 
         final Configuration configuration = new Configuration();
         JadConfig jadConfig = new JadConfig(new PropertiesRepository(configFile), configuration);
@@ -99,10 +96,10 @@ public final class Main {
         try {
             jadConfig.process();
         } catch (RepositoryException e) {
-            LOG.fatal("Couldn't load configuration file " + configFile, e);
+            LOG.error("Couldn't load configuration file " + configFile, e);
             System.exit(1);
         } catch (ValidationException e) {
-            LOG.fatal("Invalid configuration", e);
+            LOG.error("Invalid configuration", e);
             System.exit(1);
         }
 
@@ -169,6 +166,7 @@ public final class Main {
             server.registerInitializer(new AMQPSyncInitializer(server));
         }
         server.registerInitializer(new BufferWatermarkInitializer(server));
+        if (commandLineArguments.isStats()) { server.registerInitializer(new StatisticsPrinterInitializer(server)); }
         
         // Register inputs.
         if (configuration.isUseGELF()) {
@@ -180,7 +178,9 @@ public final class Main {
         if (configuration.isSyslogTcpEnabled()) { server.registerInput(new SyslogTCPInput()); }
 
         if (configuration.isAmqpEnabled()) { server.registerInput(new AMQPInput()); }
-        
+
+        if (configuration.isHttpEnabled()) { server.registerInput(new GELFHttpInput()); }
+
         // Register message filters.
         server.registerFilter(new RewriteFilter());
         server.registerFilter(new BlacklistFilter());
@@ -194,7 +194,7 @@ public final class Main {
         // Blocks until we shut down.
         server.run();
 
-        LOG.info("Graylog2 " + Core.GRAYLOG2_VERSION + " exiting.");
+        LOG.info("Graylog2 {} exiting.", Core.GRAYLOG2_VERSION);
     }
 
     private static void savePidFile(String pidFile) {
@@ -210,7 +210,7 @@ public final class Main {
             pidFileWriter = new FileWriter(pidFile);
             IOUtils.write(pid, pidFileWriter);
         } catch (Exception e) {
-            LOG.fatal("Could not write PID file: " + e.getMessage(), e);
+            LOG.error("Could not write PID file: " + e.getMessage(), e);
             System.exit(1);
         } finally {
             IOUtils.closeQuietly(pidFileWriter);

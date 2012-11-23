@@ -33,8 +33,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.lang3.concurrent.BasicThreadFactory;
-import org.apache.log4j.Logger;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.graylog2.Core;
 import org.graylog2.activities.Activity;
 import org.graylog2.gelf.GELFMessage;
@@ -46,7 +47,7 @@ import org.graylog2.inputs.syslog.SyslogProcessor;
  */
 public class AMQPConsumer implements Runnable {
 
-    private static final Logger LOG = Logger.getLogger(AMQPConsumer.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AMQPConsumer.class);
 
     private Core server;
     private GELFProcessor gelfProcessor;
@@ -138,8 +139,8 @@ public class AMQPConsumer implements Runnable {
         factory.setPort(server.getConfiguration().getAmqpPort());
 
         connection = factory.newConnection(Executors.newCachedThreadPool(
-            new BasicThreadFactory.Builder()
-                .namingPattern("amqp-consumer-" + queueConfig.getId() + "-%d")
+            new ThreadFactoryBuilder()
+                .setNameFormat("amqp-consumer-" + queueConfig.getId() + "-%d")
                 .build()
         ));
         

@@ -20,24 +20,26 @@
 
 package org.graylog2.inputs.syslog;
 
-import java.net.InetSocketAddress;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import org.apache.commons.lang3.concurrent.BasicThreadFactory;
-import org.apache.log4j.Logger;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.graylog2.Configuration;
 import org.graylog2.Core;
 import org.graylog2.inputs.MessageInput;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.ChannelException;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.InetSocketAddress;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * @author Lennart Koopmann <lennart@socketfeed.com>
  */
 public class SyslogTCPInput implements MessageInput {
     
-    private static final Logger LOG = Logger.getLogger(SyslogTCPInput.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SyslogTCPInput.class);
 
     private static final String NAME = "Syslog TCP";
 
@@ -57,13 +59,13 @@ public class SyslogTCPInput implements MessageInput {
     
     private void spinUp() {
         final ExecutorService bossThreadPool = Executors.newCachedThreadPool(
-                new BasicThreadFactory.Builder()
-                .namingPattern("input-syslogtcp-boss-%d")
+                new ThreadFactoryBuilder()
+                .setNameFormat("input-syslogtcp-boss-%d")
                 .build());
         
         final ExecutorService workerThreadPool = Executors.newCachedThreadPool(
-                new BasicThreadFactory.Builder()
-                .namingPattern("input-syslogtcp-worker-%d")
+                new ThreadFactoryBuilder()
+                .setNameFormat("input-syslogtcp-worker-%d")
                 .build());
 
         ServerBootstrap tcpBootstrap = new ServerBootstrap(
@@ -74,9 +76,9 @@ public class SyslogTCPInput implements MessageInput {
 
         try {
             tcpBootstrap.bind(socketAddress);
-            LOG.info("Started TCP syslog server on " + socketAddress);
+            LOG.info("Started TCP syslog server on {}", socketAddress);
         } catch (ChannelException e) {
-            LOG.fatal("Could not bind TCP syslog server to address " + socketAddress, e);
+            LOG.error("Could not bind TCP syslog server to address " + socketAddress, e);
         }
     }
 

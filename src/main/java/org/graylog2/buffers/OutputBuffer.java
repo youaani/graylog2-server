@@ -20,40 +20,43 @@
 
 package org.graylog2.buffers;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.lmax.disruptor.MultiThreadedClaimStrategy;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.SleepingWaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.yammer.metrics.Metrics;
 import com.yammer.metrics.core.Meter;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import org.apache.commons.lang3.concurrent.BasicThreadFactory;
-import org.apache.log4j.Logger;
 import org.graylog2.Core;
 import org.graylog2.buffers.processors.OutputBufferProcessor;
 import org.graylog2.plugin.buffers.Buffer;
 import org.graylog2.plugin.logmessage.LogMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Lennart Koopmann <lennart@socketfeed.com>
  */
 public class OutputBuffer implements Buffer {
 
-    private static final Logger LOG = Logger.getLogger(OutputBuffer.class);
+    private static final Logger LOG = LoggerFactory.getLogger(OutputBuffer.class);
     
     protected static RingBuffer<LogMessageEvent> ringBuffer;
 
     protected ExecutorService executor = Executors.newCachedThreadPool(
-            new BasicThreadFactory.Builder()
-                .namingPattern("outputbufferprocessor-%d")
+            new ThreadFactoryBuilder()
+                .setNameFormat("outputbufferprocessor-%d")
                 .build()
     );
     
     Core server;
     
     private final Meter incomingMessages = Metrics.newMeter(OutputBuffer.class, "InsertedMessages", "messages", TimeUnit.SECONDS);
+    private final Meter rejectedMessages = Metrics.newMeter(OutputBuffer.class, "RejectedMessages", "messages", TimeUnit.SECONDS);
 
     public OutputBuffer(Core server) {
         this.server = server;
@@ -89,7 +92,8 @@ public class OutputBuffer implements Buffer {
             server.outputBufferWatermark().incrementAndGet();
             incomingMessages.mark();
         } else {
-            LOG.fatal("OutputBuffer is out of capacity. Raise the ring_size configuration parameter. DROPPING MESSAGE!");
+            LOG.error("OutputBuffer is out of capacity. Raise the ring_size configuration parameter. DROPPING MESSAGE!");
+            rejectedMessages.mark();
         }
     }
 

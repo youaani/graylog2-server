@@ -18,36 +18,20 @@
  *
  */
 
-package org.graylog2.periodical;
+package org.graylog2.streams.matchers;
 
-import org.graylog2.indexer.NoTargetIndexException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.graylog2.Core;
+import java.util.regex.Pattern;
+import org.graylog2.plugin.logmessage.LogMessage;
+import org.graylog2.plugin.streams.StreamRule;
 
 /**
  * @author Lennart Koopmann <lennart@socketfeed.com>
  */
-public class IndexRetentionThread implements Runnable {
-
-    private static final Logger LOG = LoggerFactory.getLogger(IndexRetentionThread.class);
-
-    private final Core server;
-    
-    public static final int INITIAL_DELAY = 0;
-    public static final int PERIOD = 300; // Run every five minutes.
-
-    public IndexRetentionThread(Core server) {
-        this.server = server;
-    }
+public class FacilityRegexMatcher implements StreamRuleMatcher {
 
     @Override
-    public void run() {
-        try {
-            server.getIndexer().runIndexRetention();
-        } catch (NoTargetIndexException e) {
-            LOG.error("Couldn't run index retention", e);
-        }
+    public boolean match(LogMessage msg, StreamRule rule) {
+        return Pattern.compile(rule.getValue(), Pattern.DOTALL).matcher(msg.getFacility()).matches();
     }
 
 }

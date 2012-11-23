@@ -20,12 +20,6 @@
 
 package org.graylog2.streams;
 
-import org.graylog2.plugin.streams.Stream;
-import java.util.List;
-
-import org.apache.log4j.Logger;
-import org.bson.types.ObjectId;
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.mongodb.BasicDBList;
@@ -33,17 +27,23 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
-import java.util.Map;
-import java.util.Set;
+import org.bson.types.ObjectId;
 import org.elasticsearch.common.collect.Maps;
 import org.graylog2.Core;
 import org.graylog2.Tools;
 import org.graylog2.alarms.AlarmReceiverImpl;
 import org.graylog2.plugin.GraylogServer;
 import org.graylog2.plugin.alarms.AlarmReceiver;
-import org.graylog2.plugin.alarms.callbacks.AlarmCallback;
+import org.graylog2.plugin.streams.Stream;
 import org.graylog2.plugin.streams.StreamRule;
 import org.graylog2.users.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Representing a single stream from the streams collection. Also provides method
@@ -53,7 +53,7 @@ import org.graylog2.users.User;
  */
 public class StreamImpl implements Stream {
 
-    private static final Logger LOG = Logger.getLogger(StreamImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(StreamImpl.class);
 
     private final ObjectId id;
     private final String title;
@@ -62,6 +62,8 @@ public class StreamImpl implements Stream {
     private final boolean alarmForce;
     private final int alarmPeriod;
     private final int lastAlarm;
+    
+    private final Map<String, Set<Map<String, String>>> outputs;
 
     private List<StreamRule> streamRules;
     private Set<String> alarmCallbacks;
@@ -102,7 +104,11 @@ public class StreamImpl implements Stream {
             this.lastAlarm = 0;
         }
         
-        
+        if (stream.get("outputs") != null) {
+            this.outputs = buildOutputsFromMongoDoc(stream);
+        } else {
+            this.outputs = Maps.newHashMap();
+        }
         
         this.mongoObject = stream;
     }
@@ -211,6 +217,20 @@ public class StreamImpl implements Stream {
         return usersToAlarmReceivers(users);
     }
     
+    public Set<Map<String, String>> getOutputConfigurations(String className) {
+        
+        return outputs.get(className);
+    }
+    
+    public boolean hasConfiguredOutputs(String typeClass) {
+        Set<Map<String, String>> oc = getOutputConfigurations(typeClass);
+        if (oc == null) {
+            return false;
+        }
+        
+        return !oc.isEmpty();
+    }
+    
     @Override
     public ObjectId getId() {
         return id;
@@ -250,8 +270,8 @@ public class StreamImpl implements Stream {
     public boolean inAlarmGracePeriod() {
         int now = Tools.getUTCTimestamp();
         int graceLine = lastAlarm+(alarmPeriod*60);
-        LOG.debug("Last alarm of stream <" + getId() + "> was at [" + lastAlarm + "]. "
-                + "Grace period ends at [" + graceLine + "]. It now is [" + now + "].");
+        LOG.debug("Last alarm of stream <{}> was at [{}]. Grace period ends at [{}]. It now is [{}].",
+                new Object[] { getId(), lastAlarm, graceLine, now });
         return now <= graceLine;
     }
     
@@ -290,6 +310,40 @@ public class StreamImpl implements Stream {
         }
         
         return receivers;
+    }
+    
+    private Map<String, Set<Map<String, String>>> buildOutputsFromMongoDoc(DBObject stream) {
+        Map<String, Set<Map<String, String>>> o = Maps.newHashMap();
+        
+        List objs = (BasicDBList) stream.get("outputs");
+        
+        if (objs == null || objs.isEmpty()) {
+            return o;
+        }
+        
+        for (Object obj : objs) {
+            try {
+                DBObject output = (BasicDBObject) obj;
+                String typeclass = (String) output.get("typeclass");
+
+                if (!o.containsKey(typeclass)) {
+                    o.put(typeclass, new HashSet<Map<String, String>>());
+                }
+                
+                // ZOMG we need an ODM in the next version.
+                Map<String, String> outputConfig = Maps.newHashMap();
+                for (Object key : output.toMap().keySet()) {
+                    outputConfig.put(key.toString(), output.get(key.toString()).toString());
+                }
+                
+                o.get(typeclass).add(outputConfig);
+            } catch(Exception e) {
+                LOG.warn("Could not read stream output.", e);
+                continue;
+            }
+        }
+        
+        return o;
     }
 
 }

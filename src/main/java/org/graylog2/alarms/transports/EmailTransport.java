@@ -19,31 +19,28 @@
  */
 package org.graylog2.alarms.transports;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import org.apache.commons.mail.EmailException;
+import org.apache.commons.mail.SimpleEmail;
 import org.graylog2.plugin.alarms.Alarm;
+import org.graylog2.plugin.alarms.AlarmReceiver;
 import org.graylog2.plugin.alarms.transports.Transport;
 import org.graylog2.plugin.alarms.transports.TransportConfigurationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import org.apache.commons.mail.SimpleEmail;
-import org.apache.log4j.Logger;
-import org.graylog2.plugin.alarms.AlarmReceiver;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * @author Lennart Koopmann <lennart@socketfeed.com>
  */
 public class EmailTransport implements Transport {
 
-    private static final Logger LOG = Logger.getLogger(EmailTransport.class);
+    private static final Logger LOG = LoggerFactory.getLogger(EmailTransport.class);
     
     private static final String NAME = "Email";
-    
-    private final String className;
-    
+
     private Map<String, String> configuration;
     public static final Set<String> REQUIRED_FIELDS = new HashSet<String>() {{ 
         add("subject_prefix");
@@ -54,10 +51,6 @@ public class EmailTransport implements Transport {
         add("from_email");
         add("from_name");
     }};
-    
-    public EmailTransport() {
-        this.className = this.getClass().getCanonicalName();
-    }
 
     @Override
     public void initialize(Map<String, String> configuration) throws TransportConfigurationException {

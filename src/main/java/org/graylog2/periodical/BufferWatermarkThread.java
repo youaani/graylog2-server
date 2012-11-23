@@ -21,18 +21,19 @@ package org.graylog2.periodical;
 
 import com.yammer.metrics.Metrics;
 import com.yammer.metrics.core.Gauge;
-import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.log4j.Logger;
 import org.graylog2.Core;
 import org.graylog2.buffers.BufferWatermark;
-import org.joda.time.DateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Lennart Koopmann <lennart@socketfeed.com>
  */
 public class BufferWatermarkThread implements Runnable {
 
-    private static final Logger LOG = Logger.getLogger(BufferWatermarkThread.class);
+    private static final Logger LOG = LoggerFactory.getLogger(BufferWatermarkThread.class);
     
     public static final int INITIAL_DELAY = 0;
     public static final int PERIOD = 5;
@@ -52,15 +53,7 @@ public class BufferWatermarkThread implements Runnable {
         
         final BufferWatermark oWm = new BufferWatermark(ringSize, graylogServer.outputBufferWatermark());
         final BufferWatermark pWm = new BufferWatermark(ringSize, graylogServer.processBufferWatermark());
-        
-        if (graylogServer.isStatsMode()) {
-            DateTime now = new DateTime();
-            System.out.println("[util] [" + now + "] OutputBuffer is at "
-                    + oWm.getUtilizationPercentage() + "%. [" + oWm.getUtilization() + "/" + ringSize +"]");
-            System.out.println("[util] [" + now + "] ProcessBuffer is at "
-                    + pWm.getUtilizationPercentage() + "%. [" + pWm.getUtilization() + "/" + ringSize +"]");
-        }
-        
+
         graylogServer.getServerValues().writeBufferWatermarks(oWm, pWm);
         
         sendMetrics(oWm, pWm);
@@ -70,7 +63,7 @@ public class BufferWatermarkThread implements Runnable {
         // This should never happen, but just to make sure...
         int x = watermark.get();
         if (x < 0) {
-            LOG.warn("Reset a watermark to 0 because it was <" + x + ">");
+            LOG.warn("Reset a watermark to 0 because it was <{}>", x);
             watermark.set(0);
         }
     }

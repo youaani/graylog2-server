@@ -346,6 +346,7 @@ public class EmbeddedElasticSearchClient {
             
             // Sorry if this should ever go mad. Delete the index!
             deleteIndex(indexName);
+            server.getMongoBridge().removeIndexDateRange(indexName);
         }
     }
     

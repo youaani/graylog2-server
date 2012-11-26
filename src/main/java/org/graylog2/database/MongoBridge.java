@@ -24,6 +24,7 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
+import java.util.List;
 import org.graylog2.Core;
 import org.graylog2.Tools;
 import org.graylog2.activities.Activity;
@@ -177,6 +178,25 @@ public class MongoBridge {
         for (Map<String, Object> plugin : plugins) {
             coll.insert(new BasicDBObject(plugin));
         }
+    }
+    
+    public void writeIndexDateRange(String indexName, int startDate) {
+        BasicDBObject obj = new BasicDBObject();
+        obj.put("index", indexName);
+        obj.put("start", startDate);
+        
+        connection.getDatabase().getCollection("index_ranges").insert(obj);
+    }
+    
+    public List<DBObject> getIndexDateRanges() {
+        return connection.getDatabase().getCollection("index_ranges").find().toArray();
+    }
+    
+    public void removeIndexDateRange(String indexName) {
+        BasicDBObject obj = new BasicDBObject();
+        obj.put("index", indexName);
+        
+        connection.getDatabase().getCollection("index_ranges").remove(obj);
     }
     
     /**

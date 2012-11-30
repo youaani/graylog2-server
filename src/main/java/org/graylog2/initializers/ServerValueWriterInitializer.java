@@ -20,6 +20,7 @@
 
 package org.graylog2.initializers;
 
+import org.graylog2.plugin.initializers.Initializer;
 import org.graylog2.Configuration;
 import org.graylog2.Core;
 import org.graylog2.HostSystem;
@@ -56,6 +57,7 @@ public class ServerValueWriterInitializer extends SimpleFixedRateScheduleInitial
             PluginRegistry.setActiveTransports(graylogServer, graylogServer.getTransports());
             PluginRegistry.setActiveAlarmCallbacks(graylogServer, graylogServer.getAlarmCallbacks());
             PluginRegistry.setActiveMessageOutputs(graylogServer, graylogServer.getOutputs());
+            PluginRegistry.setActiveMessageInputs(graylogServer, graylogServer.getInputs());
         }
         
         configureScheduler(

@@ -23,7 +23,6 @@ package org.graylog2.buffers;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.lmax.disruptor.MultiThreadedClaimStrategy;
 import com.lmax.disruptor.RingBuffer;
-import com.lmax.disruptor.SleepingWaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.yammer.metrics.Metrics;
 import com.yammer.metrics.core.Meter;
@@ -67,8 +66,12 @@ public class OutputBuffer implements Buffer {
                 LogMessageEvent.EVENT_FACTORY,
                 executor,
                 new MultiThreadedClaimStrategy(server.getConfiguration().getRingSize()),
-                new SleepingWaitStrategy()
+                server.getConfiguration().getProcessorWaitStrategy()
         );
+        
+        LOG.info("Initialized OutputBuffer with ring size <{}> "
+                + "and wait strategy <{}>.", server.getConfiguration().getRingSize(),
+                server.getConfiguration().getProcessorWaitStrategy().getClass().getSimpleName());
 
         OutputBufferProcessor[] processors = new OutputBufferProcessor[server.getConfiguration().getOutputBufferProcessors()];
         

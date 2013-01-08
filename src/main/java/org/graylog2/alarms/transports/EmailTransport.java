@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import org.elasticsearch.common.collect.Maps;
 
 /**
  * @author Lennart Koopmann <lennart@socketfeed.com>
@@ -40,6 +41,7 @@ public class EmailTransport implements Transport {
     private static final Logger LOG = LoggerFactory.getLogger(EmailTransport.class);
     
     private static final String NAME = "Email";
+    private static final String USER_FIELD_NAME = "Email address";
 
     private Map<String, String> configuration;
     public static final Set<String> REQUIRED_FIELDS = new HashSet<String>() {{ 
@@ -120,6 +122,17 @@ public class EmailTransport implements Transport {
     @Override
     public String getName() {
         return NAME;
+    }
+    
+    @Override
+    public String getUserFieldName() {
+        return USER_FIELD_NAME;
+    }
+
+    @Override
+    public Map<String, String> getRequestedConfiguration() {
+        // This transport is built in and has it's own config way. Just for plugin compat.
+        return Maps.newHashMap();
     }
     
 }

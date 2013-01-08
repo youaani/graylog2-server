@@ -1,5 +1,5 @@
 /**
- * Copyright 2012 Lennart Koopmann <lennart@socketfeed.com>
+ * Copyright 2013 Lennart Koopmann <lennart@socketfeed.com>
  *
  * This file is part of Graylog2.
  *
@@ -17,27 +17,23 @@
  * along with Graylog2.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+package org.graylog2.metrics;
 
-package org.graylog2.initializers;
-
-import java.util.concurrent.TimeUnit;
-import org.graylog2.Core;
+import java.util.Map;
 
 /**
  * @author Lennart Koopmann <lennart@socketfeed.com>
  */
-public class SimpleFixedRateScheduleInitializer {
-
-    protected SimpleFixedRateScheduleInitializer() { /* Nope. No instances desired. Only to be inherited by Initializers if wanted. */ }
-
-    public void configureScheduler(Core server, Runnable what, int initialDelay, int period) {
-        server.getScheduler()
-                .scheduleAtFixedRate(
-                    what,
-                    initialDelay,
-                    period,
-                    TimeUnit.SECONDS
-                );
+public class MetricsFormatter {
+    
+    protected MetricsFormatter() { /* nananana */ }
+    
+    protected String buildStreamMetricName(String streamId, Map<String, String> streamNames) {
+        if (!streamNames.containsKey(streamId) || streamNames.get(streamId) == null || streamNames.get(streamId).isEmpty()) {
+            return "noname-" + streamId;
+        }
+        
+        return streamNames.get(streamId).toLowerCase().replaceAll("[^a-zA-Z0-9]", "");
     }
     
 }

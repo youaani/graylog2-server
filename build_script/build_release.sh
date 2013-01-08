@@ -50,11 +50,13 @@ mkdir -p $BUILD_DIR/plugin/initializers
 mkdir -p $BUILD_DIR/plugin/transports
 mkdir -p $BUILD_DIR/plugin/alarm_callbacks
 
+mkdir -p $BUILD_DIR/log
+
 cd builds/
 
 # tar it
 echo "Building Tarball ..."
-tar cfz $BUILD_NAME.tar.gz $BUILD_NAME
+gnutar cfz $BUILD_NAME.tar.gz $BUILD_NAME
 rm -rf ./$BUILD_NAME
 
 echo "DONE! Created Graylog2 release $BUILD_NAME on $BUILD_DATE"

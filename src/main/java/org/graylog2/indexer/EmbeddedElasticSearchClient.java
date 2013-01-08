@@ -11,8 +11,8 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.admin.indices.exists.IndicesExistsRequest;
-import org.elasticsearch.action.admin.indices.exists.IndicesExistsResponse;
+import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.stats.IndexStats;
 import org.elasticsearch.action.admin.indices.stats.IndicesStats;
@@ -55,6 +55,7 @@ import org.elasticsearch.common.settings.Settings;
 
 import static org.elasticsearch.index.query.QueryBuilders.rangeQuery;
 import static org.elasticsearch.node.NodeBuilder.nodeBuilder;
+import org.graylog2.plugin.indexer.MessageGateway;
 
 // TODO this class blocks for most of its operations, but is called from the main thread for some of them
 // TODO figure out how to gracefully deal with failure to connect (or losing connection) to the elastic search cluster!
@@ -75,13 +76,11 @@ public class EmbeddedElasticSearchClient {
         add("memory");
     }};
 
-    final static Calendar cal = Calendar.getInstance();
-
     private Core server;
 
     public EmbeddedElasticSearchClient(Core graylogServer) {
         server = graylogServer;
-        messageGateway = new MessageGateway(graylogServer);
+        messageGateway = new MessageGatewayImpl(graylogServer);
 
         final NodeBuilder builder = nodeBuilder().client(true);
         String esSettings;
@@ -301,14 +300,6 @@ public class EmbeddedElasticSearchClient {
         
         ActionFuture<DeleteByQueryResponse> future = client.deleteByQuery(b.request());
         future.actionGet();
-    }
-
-    // yyyy-MM-dd HH-mm-ss
-    // http://docs.oracle.com/javase/1.5.0/docs/api/java/util/Formatter.html#syntax
-    public static String buildTimeFormat(double timestamp) {
-        cal.setTimeInMillis(System.currentTimeMillis());
-
-        return String.format("%1$tY-%1$tm-%1$td %1$tH-%1$tM-%1$tS", cal); // ramtamtam
     }
     
     public void deleteIndex(String indexName) {

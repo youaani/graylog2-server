@@ -30,7 +30,7 @@ import com.mongodb.DBObject;
 import org.bson.types.ObjectId;
 import org.elasticsearch.common.collect.Maps;
 import org.graylog2.Core;
-import org.graylog2.Tools;
+import org.graylog2.plugin.Tools;
 import org.graylog2.alarms.AlarmReceiverImpl;
 import org.graylog2.plugin.GraylogServer;
 import org.graylog2.plugin.alarms.AlarmReceiver;
@@ -149,6 +149,16 @@ public class StreamImpl implements Stream {
 
         return streams;
     }
+    
+    public static Map<String, String> nameMap(Core server) {
+        Map<String, String> streams = Maps.newHashMap();
+        
+        for(Stream stream : fetchAllEnabled(server)) {
+            streams.put(stream.getId().toString(), stream.getTitle());
+        }
+        
+        return streams;
+    }
 
     @Override
     public List<StreamRule> getStreamRules() {
@@ -180,12 +190,11 @@ public class StreamImpl implements Stream {
         }
         
         Set<String> callbacks = Sets.newTreeSet();
-        
         List objs = (BasicDBList) this.mongoObject.get("alarm_callbacks");
+        
         if (objs != null) {
             for (Object obj : objs) {
-                DBObject callback = (BasicDBObject) obj;
-                String typeclass = (String) callback.get("typeclass");
+                String typeclass = (String) obj;
                 if (typeclass != null && !typeclass.isEmpty()) {
                     callbacks.add(typeclass);
                 }
@@ -269,7 +278,7 @@ public class StreamImpl implements Stream {
     
     public boolean inAlarmGracePeriod() {
         int now = Tools.getUTCTimestamp();
-        int graceLine = lastAlarm+(alarmPeriod*60);
+        int graceLine = lastAlarm+(alarmPeriod*60)-1;
         LOG.debug("Last alarm of stream <{}> was at [{}]. Grace period ends at [{}]. It now is [{}].",
                 new Object[] { getId(), lastAlarm, graceLine, now });
         return now <= graceLine;

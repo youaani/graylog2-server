@@ -22,7 +22,7 @@ package org.graylog2.alarms;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.graylog2.Core;
-import org.graylog2.Tools;
+import org.graylog2.plugin.Tools;
 import org.graylog2.plugin.streams.Stream;
 
 /**
@@ -56,7 +56,7 @@ public class StreamAlarmChecker {
     
     public boolean overLimit() {
         int since = Tools.getUTCTimestamp()-(stream.getAlarmTimespan()*60);
-        messageCount = server.getIndexer().getMessageGateway().streamMessageCount(stream, since);
+        messageCount = server.getIndexer().getMessageGateway().streamMessageCount(stream.getId().toString(), since);
         LOG.debug("Stream <{}> had {} messages in last {} minutes. [Limit: {}]",
                 new Object[] { stream.getId(), messageCount, stream.getAlarmTimespan(), stream.getAlarmMessageLimit() });
         return messageCount > stream.getAlarmMessageLimit();

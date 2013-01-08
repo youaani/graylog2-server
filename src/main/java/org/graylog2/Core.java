@@ -20,6 +20,7 @@
 
 package org.graylog2;
 
+import org.graylog2.plugin.Tools;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -42,19 +43,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.google.common.collect.Maps;
 import java.util.Map;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import java.util.HashSet;
-import java.util.Set;
 import org.graylog2.activities.Activity;
 import org.graylog2.activities.ActivityWriter;
 import org.graylog2.cluster.Cluster;
 import org.graylog2.database.HostCounterCacheImpl;
 import org.graylog2.indexer.Deflector;
-import org.graylog2.inputs.amqp.AMQPInput;
-import org.graylog2.inputs.gelf.GELFTCPInput;
-import org.graylog2.inputs.gelf.GELFUDPInput;
-import org.graylog2.inputs.http.GELFHttpInput;
-import org.graylog2.inputs.syslog.SyslogTCPInput;
-import org.graylog2.inputs.syslog.SyslogUDPInput;
+import org.graylog2.initializers.*;
+import org.graylog2.inputs.StandardInputSet;
 import org.graylog2.plugin.GraylogServer;
 import org.graylog2.plugin.alarms.callbacks.AlarmCallback;
 import org.graylog2.plugin.alarms.callbacks.AlarmCallbackConfigurationException;
@@ -62,10 +57,14 @@ import org.graylog2.plugin.alarms.transports.Transport;
 import org.graylog2.plugin.alarms.transports.TransportConfigurationException;
 import org.graylog2.plugin.buffers.Buffer;
 import org.graylog2.plugin.filters.MessageFilter;
+import org.graylog2.plugin.indexer.MessageGateway;
+import org.graylog2.plugin.initializers.InitializerConfigurationException;
 import org.graylog2.plugin.inputs.MessageInputConfigurationException;
 import org.graylog2.plugin.outputs.MessageOutputConfigurationException;
+import org.graylog2.plugin.streams.Stream;
 import org.graylog2.plugins.PluginConfiguration;
 import org.graylog2.plugins.PluginLoader;
+import org.graylog2.streams.StreamImpl;
 
 /**
  * Server core, handling and holding basically everything.
@@ -88,7 +87,7 @@ public class Core implements GraylogServer {
     private static final int SCHEDULED_THREADS_POOL_SIZE = 30;
     private ScheduledExecutorService scheduler;
 
-    public static final String GRAYLOG2_VERSION = "0.10.0-preview.2";
+    public static final String GRAYLOG2_VERSION = "0.10.0-rc.2";
 
     public static final String MASTER_COUNTER_NAME = "master";
     
@@ -122,15 +121,6 @@ public class Core implements GraylogServer {
     
     private boolean localMode = false;
     private boolean statsMode = false;
-    
-    public static final Set<Class> STANDARD_INPUTS = new HashSet<Class>() {{ 
-        add(GELFTCPInput.class);
-        add(GELFUDPInput.class);
-        add(GELFHttpInput.class);
-        add(AMQPInput.class);
-        add(SyslogTCPInput.class);
-        add(SyslogUDPInput.class);
-    }};
 
     public void initialize(Configuration configuration) {
         serverId = Tools.generateServerId();
@@ -212,7 +202,6 @@ public class Core implements GraylogServer {
     @Override
     public void run() {
 
-        // initiate the mongodb connection, this might fail but it will retry to establish the connection
         gelfChunkManager.start();
         BlacklistCache.initialize(this);
         StreamCache.initialize(this);
@@ -243,13 +232,14 @@ public class Core implements GraylogServer {
         loadPlugins(MessageFilter.class, "filters");
         loadPlugins(MessageOutput.class, "outputs");
         loadPlugins(AlarmCallback.class, "alarm_callbacks");
+        loadPlugins(Transport.class, "transports");
         loadPlugins(Initializer.class, "initializers");
         loadPlugins(MessageInput.class, "inputs");
         
         // Initialize all registered transports.
         for (Transport transport : this.transports) {
             try {
-                Map<String, String> config = Maps.newHashMap();
+                Map<String, String> config;
                 
                 // The built in transport methods get a more convenient configuration from graylog2.conf.
                 if (transport.getClass().getCanonicalName().equals("org.graylog2.alarms.transports.EmailTransport")) {
@@ -258,7 +248,7 @@ public class Core implements GraylogServer {
                     config = configuration.getJabberTransportConfiguration();
                 } else {
                     // Load custom plugin config.
-                    // config = PluginConfiguration.load(transport.getClass().getCanonicalName(), "transports")
+                    config = PluginConfiguration.load(this, transport.getClass().getCanonicalName());
                 }
                 
                 transport.initialize(config);
@@ -282,14 +272,29 @@ public class Core implements GraylogServer {
         
         // Initialize all registered initializers.
         for (Initializer initializer : this.initializers) {
-            initializer.initialize();
-            LOG.debug("Initialized initializer: {}", initializer.getClass().getSimpleName());
+            try {
+                if (StandardInitializerSet.get().contains(initializer.getClass())) {
+                    // This is a built-in initializer. We don't need special configs for them.
+                    initializer.initialize(this, null);
+                } else {
+                    // This is a plugin. Initialize with custom config from Mongo.
+                    initializer.initialize(this, PluginConfiguration.load(
+                            this,
+                            initializer.getClass().getCanonicalName())
+                    );
+                }
+                
+                LOG.debug("Initialized initializer: {}", initializer.getClass().getSimpleName());
+            } catch (InitializerConfigurationException e) {
+                
+            }
+            
         }
 
         // Initialize all registered inputs.
         for (MessageInput input : this.inputs) {
             try {
-                if (STANDARD_INPUTS.contains(input.getClass())) {
+                if (StandardInputSet.get().contains(input.getClass())) {
                     // This is a built-in input. Initialize with config from graylog2.conf.
                     input.initialize(configuration.getInputConfig(input.getClass()), this);
                 } else {
@@ -300,11 +305,11 @@ public class Core implements GraylogServer {
                             this
                     );
                 }
+                
+                LOG.debug("Initialized input: {}", input.getName());
             } catch (MessageInputConfigurationException e) {
                 LOG.error("Could not initialize input <{}>.", input.getClass().getCanonicalName(), e);
             }
-            
-            LOG.debug("Initialized input: {}", input.getName());
         }
         
         // Initialize all registered outputs.
@@ -342,6 +347,8 @@ public class Core implements GraylogServer {
                 registerInitializer((Initializer) plugin);
             } else if (plugin instanceof MessageInput) {
                 registerInput((MessageInput) plugin);
+            } else if (plugin instanceof Transport) {
+                registerTransport((Transport) plugin);
             } else {
                 LOG.error("Could not load plugin [{}] - Not supported type.", plugin.getClass().getCanonicalName());
             }
@@ -426,6 +433,7 @@ public class Core implements GraylogServer {
         return this.alarmCallbacks;
     }
     
+    @Override
     public MessageCounterManagerImpl getMessageCounterManager() {
         return this.messageCounterManager;
     }
@@ -456,6 +464,11 @@ public class Core implements GraylogServer {
         return this.serverId;
     }
     
+    @Override
+    public MessageGateway getMessageGateway() {
+        return this.indexer.getMessageGateway();
+    }
+    
     public void setLocalMode(boolean mode) {
         this.localMode = mode;
     }
@@ -470,6 +483,20 @@ public class Core implements GraylogServer {
    
     public boolean isStatsMode() {
         return statsMode;
+    }
+    
+    /*
+     * For plugins that need a list of all active streams. Could be moved somewhere
+     * more appropiate.
+     */
+    @Override
+    public Map<String, Stream> getEnabledStreams() {
+        Map<String, Stream> streams = Maps.newHashMap();
+        for (Stream stream : StreamImpl.fetchAllEnabled(this)) {
+            streams.put(stream.getId().toString(), stream);
+        }
+        
+        return streams;
     }
     
 }

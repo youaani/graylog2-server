@@ -27,6 +27,7 @@ import java.util.Set;
 import org.graylog2.Core;
 import org.graylog2.plugin.alarms.callbacks.AlarmCallback;
 import org.graylog2.plugin.alarms.transports.Transport;
+import org.graylog2.plugin.initializers.Initializer;
 import org.graylog2.plugin.inputs.MessageInput;
 import org.graylog2.plugin.outputs.MessageOutput;
 
@@ -39,9 +40,13 @@ public class PluginRegistry {
         Set<Map<String, Object>> r = Sets.newHashSet();
         
         for(Transport transport : transports) {
-            Map<String, Object> entry = Maps.newHashMap();
-            entry.put("typeclass", transport.getClass().getCanonicalName());
-            entry.put("name", transport.getName());
+            Map<String, Object> entry = buildStandardInformation(
+                    transport.getClass().getCanonicalName(),
+                    transport.getName(),
+                    transport.getRequestedConfiguration()
+            );
+            
+            entry.put("user_field_name", transport.getUserFieldName());
             
             r.add(entry);
         }
@@ -53,12 +58,11 @@ public class PluginRegistry {
         Set<Map<String, Object>> r = Sets.newHashSet();
         
         for(AlarmCallback callback : callbacks) {
-            Map<String, Object> entry = Maps.newHashMap();
-            entry.put("typeclass", callback.getClass().getCanonicalName());
-            entry.put("name", callback.getName());
-            entry.put("requested_config", callback.getRequestedConfiguration());
-            
-            r.add(entry);
+            r.add(buildStandardInformation(
+                    callback.getClass().getCanonicalName(),
+                    callback.getName(),
+                    callback.getRequestedConfiguration()
+            ));
         }
         
         server.getMongoBridge().writePluginInformation(r, "alarm_callbacks");
@@ -68,10 +72,12 @@ public class PluginRegistry {
         Set<Map<String, Object>> r = Sets.newHashSet();
         
         for(MessageOutput output : outputs) {
-            Map<String, Object> entry = Maps.newHashMap();
-            entry.put("typeclass", output.getClass().getCanonicalName());
-            entry.put("name", output.getName());
-            entry.put("requested_config", output.getRequestedConfiguration());
+            Map<String, Object> entry = buildStandardInformation(
+                    output.getClass().getCanonicalName(),
+                    output.getName(),
+                    output.getRequestedConfiguration()
+            );
+            
             entry.put("requested_stream_config", output.getRequestedStreamConfiguration());
             
             r.add(entry);
@@ -84,15 +90,38 @@ public class PluginRegistry {
         Set<Map<String, Object>> r = Sets.newHashSet();
         
         for(MessageInput input : inputs) {
-            Map<String, Object> entry = Maps.newHashMap();
-            entry.put("typeclass", input.getClass().getCanonicalName());
-            entry.put("name", input.getName());
-            entry.put("requested_config", input.getRequestedConfiguration());
-            
-            r.add(entry);
+            r.add(buildStandardInformation(
+                    input.getClass().getCanonicalName(),
+                    input.getName(),
+                    input.getRequestedConfiguration()
+            ));
         }
         
         server.getMongoBridge().writePluginInformation(r, "message_inputs");
+    }
+    
+    public static void setActiveInitializers(Core server, List<Initializer> initializers) {
+        Set<Map<String, Object>> r = Sets.newHashSet();
+        
+        for(Initializer initializer : initializers) {
+            r.add(buildStandardInformation(
+                    initializer.getClass().getCanonicalName(),
+                    initializer.getName(),
+                    initializer.getRequestedConfiguration()
+            ));
+        }
+        
+        server.getMongoBridge().writePluginInformation(r, "initializers");
+    }
+    
+    public static Map<String, Object> buildStandardInformation(String typeclass, String name, Map<String, String> requestedConfig) {
+        Map<String, Object> o = Maps.newHashMap();
+        
+        o.put("typeclass", typeclass);
+        o.put("name", name);
+        o.put("requested_config", requestedConfig);
+        
+        return o;
     }
     
 }

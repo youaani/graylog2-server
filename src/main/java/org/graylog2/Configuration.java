@@ -81,6 +81,9 @@ public class Configuration {
     @Parameter(value = "syslog_store_full_message", required = false)
     private boolean syslogStoreFullMessage = true;
     
+    @Parameter(value = "udp_recvbuffer_sizes", required = true, validator = PositiveIntegerValidator.class)
+    private int udpRecvBufferSizes = 1048576;
+    
     @Parameter(value = "force_syslog_rdns", required = true)
     private boolean forceSyslogRdns = false;
 
@@ -151,7 +154,7 @@ public class Configuration {
     private String mongoDatabase = "graylog2";
 
     @Parameter(value = "mongodb_host", required = true)
-    private String mongoHost = "localhost";
+    private String mongoHost = "127.0.0.1";
 
     @Parameter(value = "mongodb_port", required = true, validator = InetPortValidator.class)
     private int mongoPort = 27017;
@@ -212,6 +215,9 @@ public class Configuration {
 
     @Parameter(value = "enable_libratometrics_output", required = false)
     private boolean enableLibratoMetricsOutput = false;
+    
+    @Parameter(value = "enable_libratometrics_system_metrics", required = false)
+    private boolean enableLibratoSystemMetrics = false;
 
     @Parameter(value = "libratometrics_api_user", required = false)
     private String libratometricsApiUser;
@@ -229,7 +235,7 @@ public class Configuration {
     private int libratometricsInterval = 10;
 
     @Parameter(value = "libratometrics_prefix", required = false)
-    private String libratometricsPrefix = "gl2";
+    private String libratometricsPrefix = "gl2-";
 
     @Parameter(value = "plugin_dir", required = false)
     private String pluginDir = "plugin";
@@ -385,6 +391,10 @@ public class Configuration {
     
     public int getOutputBufferProcessorThreadsMaxPoolSize() {
         return outputBufferProcessorThreadsMaxPoolSize;
+    }
+    
+    public int getUdpRecvBufferSizes() {
+        return udpRecvBufferSizes;
     }
     
     public WaitStrategy getProcessorWaitStrategy() {
@@ -564,6 +574,10 @@ public class Configuration {
         return enableLibratoMetricsOutput;
     }
 
+    public boolean isEnableLibratoSystemMetrics() {
+        return enableLibratoSystemMetrics;
+    }
+    
     public String getLibratoMetricsAPIUser() {
         return libratometricsApiUser;
     }

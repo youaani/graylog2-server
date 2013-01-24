@@ -87,7 +87,7 @@ public class Core implements GraylogServer {
     private static final int SCHEDULED_THREADS_POOL_SIZE = 30;
     private ScheduledExecutorService scheduler;
 
-    public static final String GRAYLOG2_VERSION = "0.10.0-rc.2";
+    public static final String GRAYLOG2_VERSION = "0.10.0-rc.3";
 
     public static final String MASTER_COUNTER_NAME = "master";
     
@@ -365,6 +365,10 @@ public class Core implements GraylogServer {
 
     public ScheduledExecutorService getScheduler() {
         return scheduler;
+    }
+    
+    public void setConfiguration(Configuration configuration) {
+        this.configuration = configuration;
     }
 
     public Configuration getConfiguration() {

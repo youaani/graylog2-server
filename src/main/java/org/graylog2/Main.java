@@ -122,6 +122,7 @@ public final class Main {
         // If we only want to check our configuration, we just initialize the rules engine to check if the rules compile
         if (commandLineArguments.isConfigTest()) {
             Core server = new Core();
+            server.setConfiguration(configuration);
             DroolsInitializer drools = new DroolsInitializer();
             try {
                 drools.initialize(server, null);
@@ -202,11 +203,11 @@ public final class Main {
         if (configuration.isHttpEnabled()) { server.registerInput(new GELFHttpInput()); }
 
         // Register message filters.
-        server.registerFilter(new RewriteFilter());
         server.registerFilter(new BlacklistFilter());
         if (configuration.isEnableTokenizerFilter()) { server.registerFilter(new TokenizerFilter()); }
         server.registerFilter(new StreamMatcherFilter());
         server.registerFilter(new CounterUpdateFilter());
+        server.registerFilter(new RewriteFilter());
 
         // Register outputs.
         server.registerOutput(new ElasticSearchOutput());

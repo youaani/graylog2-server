@@ -17,29 +17,17 @@
  * along with Graylog2.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+package org.graylog2.alarms.transports;
 
-package org.graylog2;
+import java.util.Map;
 
-import org.graylog2.buffers.BasicCache;
-import org.graylog2.buffers.ProcessBuffer;
-import org.graylog2.plugin.logmessage.LogMessage;
+import org.graylog2.plugin.alarms.Alarm;
 
-/**
- * @author Lennart Koopmann <lennart@socketfeed.com>
- */
-public class ProcessBufferStub extends ProcessBuffer {
+public interface EmailLayout {
 
-    GraylogServerStub serverStub;
-
-    public ProcessBufferStub(GraylogServerStub server) {
-        super(null, new BasicCache());
-        serverStub = server;
-    }
-
-    @Override
-    public void insertCached(LogMessage msg) {
-        serverStub.callsToProcessBufferInserter++;
-        serverStub.lastInsertedToProcessBuffer = msg;
-    }
+    void initialize(Map<String, String> pluginConfiguration);
+    String getContentType();
+    String formatMessageBody(Alarm message, long unixTimestamp);
+    String getSubject(Alarm message, long unixTimestamp);
 
 }

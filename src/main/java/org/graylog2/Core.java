@@ -91,7 +91,7 @@ public class Core implements GraylogServer {
     private static final int SCHEDULED_THREADS_POOL_SIZE = 30;
     private ScheduledExecutorService scheduler;
 
-    public static final String GRAYLOG2_VERSION = "0.11.0";
+    public static final String GRAYLOG2_VERSION = "0.12.0-rc.1";
 
     public static final String MASTER_COUNTER_NAME = "master";
 
@@ -222,7 +222,7 @@ public class Core implements GraylogServer {
         deflector.setUp();
         
         // Set up recent index.
-        if (indexer.indexExists(EmbeddedElasticSearchClient.RECENT_INDEX_NAME)) {
+        if (indexer.indexExists(configuration.getRecentIndexName())) {
             LOG.info("Recent index exists. Not creating it.");
         } else {
             LOG.info("Recent index does not exist! Trying to create it ...");

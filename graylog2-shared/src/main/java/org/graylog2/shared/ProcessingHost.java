@@ -17,8 +17,4 @@ public interface ProcessingHost extends GenericHost {
     public AtomicInteger processBufferWatermark();
     public MetricRegistry metrics();
     public String getNodeId();
-    public boolean isProcessing();
-
-    public boolean isServer();
-    public boolean isRadio();
 }

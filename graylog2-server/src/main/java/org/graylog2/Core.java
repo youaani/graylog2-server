@@ -104,9 +104,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Server core, handling and holding basically everything.
- * 
+ *
  * (Du kannst das Geraet nicht bremsen, schon garnicht mit bloßen Haenden.)
- * 
+ *
  * @author Lennart Koopmann <lennart@socketfeed.com>
  */
 public class Core implements GraylogServer, InputHost, MetricsHost, ProcessingHost {
@@ -144,29 +144,29 @@ public class Core implements GraylogServer, InputHost, MetricsHost, ProcessingHo
     private OutputRegistry outputs;
 
     private DashboardRegistry dashboards;
-    
+
     private ProcessBuffer processBuffer;
     private OutputBuffer outputBuffer;
     private AtomicInteger outputBufferWatermark = new AtomicInteger();
     private AtomicInteger processBufferWatermark = new AtomicInteger();
-    
+
     private Cache inputCache;
     private Cache outputCache;
-    
+
     private Deflector deflector;
-    
+
     private ActivityWriter activityWriter;
 
     private SystemJobManager systemJobManager;
 
     private String nodeId;
-    
+
     private boolean localMode = false;
     private boolean statsMode = false;
 
     private AtomicBoolean isProcessing = new AtomicBoolean(true);
     private AtomicBoolean processingPauseLocked = new AtomicBoolean(false);
-    
+
     private DateTime startedAt;
     private MetricRegistry metricRegistry;
     private LdapUserAuthenticator ldapUserAuthenticator;
@@ -176,7 +176,7 @@ public class Core implements GraylogServer, InputHost, MetricsHost, ProcessingHo
     private AtomicReference<HashMap<String, Counter>> currentStreamThroughput = new AtomicReference<HashMap<String, Counter>>();
 
     public void initialize(Configuration configuration, MetricRegistry metrics) {
-    	startedAt = new DateTime(DateTimeZone.UTC);
+        startedAt = new DateTime(DateTimeZone.UTC);
 
         NodeId id = new NodeId(configuration.getNodeIdFile());
         this.nodeId = id.readOrGenerate();
@@ -190,17 +190,17 @@ public class Core implements GraylogServer, InputHost, MetricsHost, ProcessingHo
         }
 
         if (this.configuration.getRestTransportUri() == null) {
-                String guessedIf;
-                try {
-                    guessedIf = Tools.guessPrimaryNetworkAddress().getHostAddress();
-                } catch (Exception e) {
-                    LOG.error("Could not guess primary network address for rest_transport_uri. Please configure it in your graylog2.conf.", e);
-                    throw new RuntimeException("No rest_transport_uri.");
-                }
+            String guessedIf;
+            try {
+                guessedIf = Tools.guessPrimaryNetworkAddress().getHostAddress();
+            } catch (Exception e) {
+                LOG.error("Could not guess primary network address for rest_transport_uri. Please configure it in your graylog2.conf.", e);
+                throw new RuntimeException("No rest_transport_uri.");
+            }
 
-                String transportStr = "http://" + guessedIf + ":" + configuration.getRestListenUri().getPort();
-                LOG.info("No rest_transport_uri set. Falling back to [{}].", transportStr);
-                this.configuration.setRestTransportUri(transportStr);
+            String transportStr = "http://" + guessedIf + ":" + configuration.getRestListenUri().getPort();
+            LOG.info("No rest_transport_uri set. Falling back to [{}].", transportStr);
+            this.configuration.setRestTransportUri(transportStr);
         }
 
         mongoConnection = new MongoConnection();    // TODO use dependency injection
@@ -232,10 +232,10 @@ public class Core implements GraylogServer, InputHost, MetricsHost, ProcessingHo
         systemJobManager = new SystemJobManager(this);
 
         hostCounterCache = new HostCounterCacheImpl();
-        
+
         inputCache = new BasicCache();
         outputCache = new BasicCache();
-    
+
         processBuffer = new ProcessBuffer(this, inputCache);
         processBuffer.initialize(this.getConfiguration().getRingSize(),
                 this.getConfiguration().getProcessorWaitStrategy(),
@@ -268,7 +268,7 @@ public class Core implements GraylogServer, InputHost, MetricsHost, ProcessingHo
     public void registerTransport(Transport transport) {
         this.transports.add(transport);
     }
-    
+
     public void registerAlarmCallback(AlarmCallback alarmCallback) {
         this.alarmCallbacks.add(alarmCallback);
     }
@@ -459,7 +459,7 @@ public class Core implements GraylogServer, InputHost, MetricsHost, ProcessingHo
     public ScheduledExecutorService getScheduler() {
         return scheduler;
     }
-    
+
     public void setConfiguration(Configuration configuration) {
         this.configuration = configuration;
     }
@@ -493,19 +493,19 @@ public class Core implements GraylogServer, InputHost, MetricsHost, ProcessingHo
     public Buffer getOutputBuffer() {
         return this.outputBuffer;
     }
-    
+
     public AtomicInteger outputBufferWatermark() {
         return outputBufferWatermark;
     }
-    
+
     public AtomicInteger processBufferWatermark() {
         return processBufferWatermark;
     }
-    
+
     public List<Transport> getTransports() {
         return this.transports;
     }
-    
+
     public List<MessageFilter> getFilters() {
         return this.filters;
     }
@@ -517,7 +517,7 @@ public class Core implements GraylogServer, InputHost, MetricsHost, ProcessingHo
     public HostCounterCacheImpl getHostCounterCache() {
         return this.hostCounterCache;
     }
-    
+
     public Deflector getDeflector() {
         return this.deflector;
     }
@@ -542,21 +542,21 @@ public class Core implements GraylogServer, InputHost, MetricsHost, ProcessingHo
     public boolean isMaster() {
         return this.configuration.isMaster();
     }
-    
+
     @Override
     public String getNodeId() {
         return this.nodeId;
     }
-    
+
     @Override
     public MessageGateway getMessageGateway() {
         return this.indexer.getMessageGateway();
     }
-    
+
     public void setLocalMode(boolean mode) {
         this.localMode = mode;
     }
-   
+
     public boolean isLocalMode() {
         return localMode;
     }
@@ -564,11 +564,11 @@ public class Core implements GraylogServer, InputHost, MetricsHost, ProcessingHo
     public void setStatsMode(boolean mode) {
         this.statsMode = mode;
     }
-   
+
     public boolean isStatsMode() {
         return statsMode;
     }
-    
+
     /*
      * For plugins that need a list of all active streams. Could be moved somewhere
      * more appropiate.
@@ -579,10 +579,10 @@ public class Core implements GraylogServer, InputHost, MetricsHost, ProcessingHo
         for (Stream stream : StreamImpl.loadAllEnabled(this)) {
             streams.put(stream.getId().toString(), stream);
         }
-        
+
         return streams;
     }
-    
+
     public Counter getBenchmarkCounter() {
         return benchmarkCounter;
     }
@@ -602,13 +602,13 @@ public class Core implements GraylogServer, InputHost, MetricsHost, ProcessingHo
     public Cache getInputCache() {
         return inputCache;
     }
-    
+
     public Cache getOutputCache() {
         return outputCache;
     }
-    
+
     public DateTime getStartedAt() {
-    	return startedAt;
+        return startedAt;
     }
 
     public void pauseMessageProcessing(boolean locked) {

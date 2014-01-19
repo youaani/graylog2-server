@@ -577,7 +577,7 @@ public class Core implements GraylogServer, InputHost, MetricsHost, ProcessingHo
     public Map<String, Stream> getEnabledStreams() {
         Map<String, Stream> streams = Maps.newHashMap();
         for (Stream stream : StreamImpl.loadAllEnabled(this)) {
-            streams.put(stream.getId().toString(), stream);
+            streams.put(stream.getId(), stream);
         }
 
         return streams;

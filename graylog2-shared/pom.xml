@@ -13,11 +13,7 @@
     <parent>
         <groupId>org.graylog2</groupId>
         <artifactId>graylog2-parent</artifactId>
-<<<<<<< HEAD
         <version>0.20.1-rc.1-2-SNAPSHOT</version>
-=======
-        <version>0.20.0-rc.1</version>
->>>>>>> 5ae2571954887d38013b986e656adca43c130c7b
     </parent>
 
     <name>graylog2-shared</name>
@@ -53,14 +49,11 @@
             <artifactId>disruptor</artifactId>
             <version>3.2.0</version>
         </dependency>
-<<<<<<< HEAD
         <dependency>
             <groupId>com.codahale.metrics</groupId>
             <artifactId>metrics-core</artifactId>
             <version>${metrics.version}</version>
         </dependency>
-=======
->>>>>>> 5ae2571954887d38013b986e656adca43c130c7b
     </dependencies>
 
     <build>

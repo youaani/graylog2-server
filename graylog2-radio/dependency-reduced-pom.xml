@@ -3,7 +3,11 @@
   <parent>
     <artifactId>graylog2-parent</artifactId>
     <groupId>org.graylog2</groupId>
+<<<<<<< HEAD
     <version>0.20.1-rc.1-2-SNAPSHOT</version>
+=======
+    <version>0.20.0-rc.1</version>
+>>>>>>> 5ae2571954887d38013b986e656adca43c130c7b
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>graylog2-radio</artifactId>

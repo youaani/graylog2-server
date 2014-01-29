@@ -56,10 +56,13 @@ public interface GraylogServer extends Runnable, GenericHost {
     public AtomicInteger processBufferWatermark();
 
     public List<MessageFilter> getFilters();
+<<<<<<< HEAD
 
     public boolean isProcessing();
 
     public boolean isServer();
 
     public boolean isRadio();
+=======
+>>>>>>> 5ae2571954887d38013b986e656adca43c130c7b
 }

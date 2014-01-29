@@ -86,7 +86,11 @@ public class ServerInputRegistry extends InputRegistry {
                 notification.addThisNode();
                 notification.addDetail("input_id", state.getMessageInput().getId());
                 notification.addDetail("reason", state.getDetailedMessage());
+<<<<<<< HEAD
                 notification.publishIfFirst();
+=======
+                notification.publish();
+>>>>>>> 5ae2571954887d38013b986e656adca43c130c7b
                 break;
         }
     }
